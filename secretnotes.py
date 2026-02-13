@@ -1,12 +1,21 @@
 import tkinter
 from tkinter import PhotoImage, StringVar
+import tkinter.messagebox as messagebox
 import os
 import sys
 
 screen = tkinter.Tk()
 screen.title("Secret Notes")
-screen.geometry("400x750")
+screen.resizable(False, False)
 
+def center_screen(window):
+    width = 400
+    height = 750
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
 
 def get_base_path():
     if getattr(sys, 'frozen', False):
@@ -19,12 +28,20 @@ file_path = os.path.join(base_dir, "my_secret.txt")
 file_path_tk = StringVar()
 txt_created = False
 
-def save_encrypt_message():
+def save_message():
     if txt_created:
-        with open(file_path, "a") as f:
-            f.write(f"\n{title_entry.get()}\n{message_text.get("0.0", "end-1c")}")
-            title_entry.delete(0, "end")
-            message_text.delete(1.0, tkinter.END)
+        if title_entry.get() != "" and message_text.get("0.0", "end-1c") != "" and key_entry.get() != "":
+            with open(file_path, "a") as f:
+                f.write(f"\n{title_entry.get()}"
+                        f"\n{message_text.get("0.0", "end-1c")}"
+                        f"-KEY={key_entry.get()}")
+                title_entry.delete(0, "end")
+                message_text.delete(1.0, tkinter.END)
+                key_entry.delete(0, "end")
+
+        else:
+            print("POP UP ERROR. YOU NEED TO FILL ALL AREAS")
+            messagebox.showerror("Input Error", "You need to fill all information !")
     else:
         with open(file_path, "w") as f:
             f.write(f"{title_entry.get()}\n{message_text.get("0.0", "end-1c")}")
@@ -33,9 +50,13 @@ def save_encrypt_message():
     """
     add here the function of encrypt for adding encrypted message instead of normal message to txt file
     add here a variable to hold the key for using later to decrypt the message
-    add here a mechanism to control if the title_entry, message_text and master_key_entry are not empty
-    If empty, give popup error and do not
     """
+
+def read_message():
+    pass
+
+def encrypt_message():
+    pass
 
 def decrypt_message():
     """
@@ -79,12 +100,13 @@ key_label.pack(pady=(10,5))
 key_entry = tkinter.Entry(width=40, font=("Arial Bold", 10, "bold"))
 key_entry.pack()
 
-save_encrypt_button = tkinter.Button(text="Save & Encrypt", width=18, height=1, font=("Arial Bold", 8), command=save_encrypt_message)
+save_encrypt_button = tkinter.Button(text="Save & Encrypt", width=18, height=1, font=("Arial Bold", 8), command=save_message)
 save_encrypt_button.pack(pady=(20,5))
 
 decrypt_button = tkinter.Button(text="Decrypt", width=12, height=1, font=("Arial Bold", 8), command=decrypt_message)
 decrypt_button.pack(pady=(5,5))
 
-if __name__ == "__main__":
-    show_filepath()
-    screen.mainloop()
+show_filepath()
+center_screen(screen)
+
+screen.mainloop()
