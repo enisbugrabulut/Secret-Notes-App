@@ -3,6 +3,9 @@ from tkinter import PhotoImage, StringVar
 import tkinter.messagebox as messagebox
 import os
 import sys
+from cryptography.fernet import Fernet, InvalidToken
+import hashlib
+import base64
 
 screen = tkinter.Tk()
 screen.title("Secret Notes")
@@ -29,43 +32,64 @@ file_path_tk = StringVar()
 txt_created = False
 
 def save_message():
-    if txt_created:
-        if title_entry.get() != "" and message_text.get("0.0", "end-1c") != "" and key_entry.get() != "":
+    if title_entry.get() != "" and message_text.get("0.0", "end-1c") != "" and key_entry.get() != "":
+        if txt_created:
             with open(file_path, "a") as f:
                 f.write(f"\n{title_entry.get()}"
-                        f"\n{message_text.get("0.0", "end-1c")}"
-                        f"-KEY={key_entry.get()}")
+                        f"\n{encrypt_message().decode()}")
                 title_entry.delete(0, "end")
                 message_text.delete(1.0, tkinter.END)
                 key_entry.delete(0, "end")
 
         else:
-            print("POP UP ERROR. YOU NEED TO FILL ALL AREAS")
-            messagebox.showerror("Input Error", "You need to fill all information !")
-    else:
-        with open(file_path, "w") as f:
-            f.write(f"{title_entry.get()}\n{message_text.get("0.0", "end-1c")}")
-            title_entry.delete(0, "end")
-            message_text.delete(1.0, tkinter.END)
-    """
-    add here the function of encrypt for adding encrypted message instead of normal message to txt file
-    add here a variable to hold the key for using later to decrypt the message
-    """
+            with open(file_path, "w") as f:
+                f.write(f"{title_entry.get()}\n{encrypt_message()}")
+                title_entry.delete(0, "end")
+                message_text.delete(1.0, tkinter.END)
 
-def read_message():
-    pass
+    else:
+        print("POP UP ERROR. YOU NEED TO FILL ALL AREAS")
+        messagebox.showerror("Input Error", "You need to fill all information !")
+
+def create_key(key_text):
+    hash_obj = hashlib.sha256(key_text.encode())
+    return base64.urlsafe_b64encode(hash_obj.digest())
 
 def encrypt_message():
-    pass
+    text = message_text.get("0.0", "end-1c")
+    key_text = key_entry.get()
+    key = create_key(key_text)
+    f = Fernet(key)
+    encrypted_message = f.encrypt(text.encode("utf-8"))
+    return encrypted_message
 
 def decrypt_message():
-    """
-    add here to ability of read the txt and decrypt the message
-    when you copy the encrypted message, you will need the key. If you don't enter the key, program will give you popup error
-    do the popup error box
-    """
+    if message_text.get("0.0", "end-1c") != "" and key_entry.get() != "":
+        encrypted_text = message_text.get("0.0", "end-1c")
+        if search_text(file_path, encrypted_text):
+            key_text = key_entry.get()
+            key = create_key(key_text)
+            f = Fernet(key)
+            try:
+                decrypted_message = f.decrypt(encrypted_text.encode()).decode()
+                message_text.delete("1.0", "end")
+                message_text.insert("end", decrypted_message)
+            except InvalidToken:
+                fake_text = base64.b64encode(encrypted_text[::-1].encode()).decode()[:len(encrypted_text)]
+                message_text.delete("1.0", "end")
+                message_text.insert("end", fake_text)
+        else:
+            messagebox.showerror("Input Error", "The encoded content is not exist !")
+    else:
+        messagebox.showerror("Input Error", "You need to fill all information !")
 
-    pass
+def search_text(file_of_path, checking_text):
+    with open(file_of_path, 'r') as f:
+        all_text = f.read()
+        if checking_text in all_text:
+            return True
+        else:
+            return False
 
 def show_filepath():
     if os.path.exists(file_path):
